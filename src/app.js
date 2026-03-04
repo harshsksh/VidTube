@@ -17,6 +17,12 @@ app.use(cookieParser());
 // routes
 import userRouter from "./routes/user.route.js";
 
+// In your app.js / server entry point
+import fs from "fs";
+if (!fs.existsSync("./public/temp")) {
+  fs.mkdirSync("./public/temp", { recursive: true });
+}
+
 app.use("/api/v1/users", userRouter)
 
 export default app;

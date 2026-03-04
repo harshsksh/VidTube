@@ -1,43 +1,34 @@
-import { v2 as cloudinary } from "cloudinary";
-import fs from "fs";
-
-cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
-});
+import { v2 as cloudinary } from "cloudinary"
+import fs from "fs"
 
 const uploadOnCloudinary = async (localFilePath) => {
     try {
+        if (!localFilePath) return null
 
-        if (!localFilePath) return null;
-
-        const response = await cloudinary.uploader.upload(localFilePath, {
-            resource_type: "auto",
+        // Configure cloudinary here (not at top-level) because
+        // ES module imports are hoisted and run before dotenv.config()
+        cloudinary.config({
+            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+            api_key: process.env.CLOUDINARY_API_KEY,
+            api_secret: process.env.CLOUDINARY_API_SECRET
         });
 
-        // file uploaded successfully
-        console.log("file is uploaded on cloudinary", response.url);
-
-        //  remove local temp file
-        fs.unlinkSync(localFilePath);
+        //upload the file on cloudinary
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "auto"
+        });
+        // file has been uploaded successfully
+        console.log("file is uploaded on cloudinary ", response.url);
+        fs.unlinkSync(localFilePath)
         return response;
 
     } catch (error) {
-        // remove the locally saved temp file if upload fails
-        fs.unlinkSync(localFilePath);
+        console.error("Cloudinary upload error:", error.message);
+        if (localFilePath) {
+            try { fs.unlinkSync(localFilePath); } catch (_) { }
+        }
         return null;
     }
-};
+}
 
-// const deleteFromCloudinary = async (publicId) => {
-//     try {
-//         if (!publicId) return null;
-//         const result = await cloudinary.uploader.destroy(publicId);
-//         return result;
-//     } catch (error) {
-//         return null;
-//     }
-// };
-
-export { uploadOnCloudinary };
+export { uploadOnCloudinary }
