@@ -4,6 +4,7 @@ import { apiError } from "../utils/apiError.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
+import { Subscription } from "../models/subscription.model.js";
 
 
 const generateAccessAndRefreshTokens = async(userId) => {
@@ -292,4 +293,74 @@ const updateCoverImage = asyncHandler(async(req, res) => {
     )
 })
 
-export { registerUser, loginUser, logoutUser, refreshToken, changePassword, getCurrentUser, updateProfile, updateAvatar, updateCoverImage }
+const getUserChannelProfile = asyncHandler(async(req, res) => {
+    const {username} = req.params;
+
+    if(!username){
+        throw new apiError(400, "username is missing")
+    }
+
+    const channelProfile = await User.aggregate([
+        {
+            $match : {
+                username : username?.toLowerCase()
+            }
+        },
+        {
+            $lookup : {
+                from : "subscriptions",
+                localField : "_id",
+                foreignField : "channel",
+                as : "subscribers"
+            }
+        },
+        {
+            $lookup : {
+                from : "subscriptions",
+                localField : "_id",
+                foreignField : "subscriber",
+                as : "subscribedTo"
+            }
+        },
+        {
+            $addFields : {
+                subscribersCount : {
+                    $size : "$subscribers"
+                },
+                subscribedToCount : {
+                    $size : "$subscribedTo"
+                },
+                isSubscribed : {
+                    $cond : {
+                        if : {
+                            $in : [req.user?._id, "$subscribers.subscriber"]
+                        },
+                        then : true,
+                        else : false
+                    }
+                }
+            }
+        },
+        {
+            $project : {
+                username : 1,
+                fullname : 1,
+                avatar : 1,
+                coverImage : 1,
+                subscribersCount : 1,
+                subscribedToCount : 1,
+                isSubscribed : 1
+            }
+        }
+    ])
+
+    if(!channelProfile?.length){
+        throw new apiError(404, "Channel not found");
+    }
+
+    return res.status(200).json(
+        new apiResponse(200, channelProfile[0], "Channel profile fetched successfully")
+    )
+})
+
+export { registerUser, loginUser, logoutUser, refreshToken, changePassword, getCurrentUser, updateProfile, updateAvatar, updateCoverImage, getUserChannelProfile }
