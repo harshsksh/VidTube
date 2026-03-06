@@ -6,6 +6,7 @@ import { apiResponse } from "../utils/apiResponse.js";
 import jwt from "jsonwebtoken";
 import { Subscription } from "../models/subscription.model.js";
 import { Video } from "../models/video.model.js";
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -294,7 +295,7 @@ const updateCoverImage = asyncHandler(async (req, res) => {
     )
 })
 
-const getUserChannelProfile = asyncHandlgeer(async (req, res) => {
+const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params;
 
     if (!username) {
